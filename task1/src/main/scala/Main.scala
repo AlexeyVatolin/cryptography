@@ -4,7 +4,6 @@ import spire.math.UInt
 
 import scala.io.StdIn.readInt
 
-
 object Main extends App {
   val number = greeting()
 
@@ -36,13 +35,13 @@ object Main extends App {
 
   }
 
-
   def task2(): Unit = {
     println("Input number and i")
     val a = readInt()
     val i = readInt()
 
-    println(s"Merge first $i bits with last $i bits ${toBinary(merge(UInt(a), i))}")
+    println(s"Input number in binary format ${toBinary(UInt(a))}")
+    println(s"Merge first $i bits with last $i bits ${toBinary(mergeBits(UInt(a), i))}")
     println(s"Get bits between first and last $i bits ${toBinary(getCentral(UInt(a), i))}")
   }
 
@@ -56,7 +55,8 @@ object Main extends App {
     val a = readInt()
     val i = readInt()
 
-    println(s"Circular shift right ${shiftLeft(UInt(a), i)}")
-    println(s"Circular shift right ${shiftRight(UInt(a), i)}")
+    println(s"number = ${toBinary(UInt(a))}")
+    println(s"Circular shift left ${toBinary(shiftLeft(UInt(a), i))}")
+    println(s"Circular shift right ${toBinary(shiftRight(UInt(a), i))}")
   }
 }

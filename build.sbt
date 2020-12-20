@@ -1,5 +1,5 @@
-name := "sbt-multi-project-example"
-organization in ThisBuild := "com.pbassiner"
+name := "cryptography"
+organization in ThisBuild := "com.vatolin"
 scalaVersion in ThisBuild := "2.12.3"
 
 // PROJECTS
@@ -11,7 +11,9 @@ lazy val global = project
   .aggregate(
     common,
     task1,
-    multi2
+    task2,
+    task3,
+    task4
   )
 
 lazy val common = project
@@ -33,12 +35,34 @@ lazy val task1 = project
     common
   )
 
-lazy val multi2 = project
+lazy val task2 = project
   .settings(
-    name := "multi2",
+    name := "task2",
     settings,
     assemblySettings,
     libraryDependencies ++= commonDependencies
+  )
+  .dependsOn(
+    common
+  )
+
+lazy val task3 = project
+  .settings(
+    name := "task3",
+    settings,
+    assemblySettings,
+    libraryDependencies ++= commonDependencies
+  )
+  .dependsOn(
+    common
+  )
+
+lazy val task4 = project
+  .settings(
+    name := "task4",
+    settings,
+    assemblySettings,
+    libraryDependencies ++= commonDependencies ++ testingDependencies
   )
   .dependsOn(
     common
@@ -48,6 +72,10 @@ lazy val multi2 = project
 
 lazy val commonDependencies = Seq(
   "org.typelevel" %% "spire" % "0.16.2"
+)
+
+lazy val testingDependencies = Seq(
+  "org.scalatest" %% "scalatest" % "3.2.3" % Test
 )
 
 // SETTINGS
