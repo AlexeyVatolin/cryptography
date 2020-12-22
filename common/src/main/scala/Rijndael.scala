@@ -6,7 +6,7 @@ import Gf256.multiply
 import spire.math.UByte
 
 
-class Rijndael (val keySize: Int) {
+class Rijndael(val keySize: Int) {
   if (keySize != 128 && keySize != 192 && keySize != 256)
     throw new InvalidParameterException()
 
@@ -30,22 +30,18 @@ class Rijndael (val keySize: Int) {
   private implicit def int2Ubyte(x: Int): UByte = UByte(x)
 
   def encode(input: String, key: String): Array[UByte] = {
-    val inputBytes = stringToBytes(input).grouped(4).toArray.transpose.flatten
-    val keySchedule = keyExpansion(key) // .grouped(4).toArray.transpose.flatten
-    if (inputBytes.length <= keySize) {
-      return encodeBatch(inputBytes, keySchedule)
-    }
-    new Array[UByte](1)
-//    encodeBatch(..., keySchedule)
+    val inputBytes = stringToBytes(input)
+    val keySchedule = keyExpansion(key)
+    inputBytes.sliding(keySizeBytes, step = keySizeBytes)
+              .flatMap(x => encodeBatch(x, keySchedule))
+              .toArray
   }
 
   def decode(inputBytes: Array[UByte], key: String): String = {
     val keySchedule = keyExpansion(key)
-    if (inputBytes.length <= keySize) {
-      return bytesToString(decodeBatch(inputBytes, keySchedule))
-    }
-    "new Array[UByte](1)"
-    //    encodeBatch(..., keySchedule)
+    inputBytes.sliding(keySizeBytes, step = keySizeBytes)
+              .flatMap(x => bytesToString(decodeBatch(x, keySchedule)))
+              .mkString("")
   }
 
   def encodeBatch(input: Array[UByte], key: Array[UByte]): Array[UByte] = {
@@ -67,10 +63,10 @@ class Rijndael (val keySize: Int) {
     var state = addRoundKey(input, key.slice(keySizeBytes * (numRounds - 1), keySizeBytes * numRounds))
 
     var i = numRounds - 1
-    while (i >= 1) {
+    while (i > 1) {
       state = shiftRow(state, inverse = true)
       state = byteSub(state, inverse = true)
-      state = addRoundKey(state, key.slice(keySizeBytes * i, keySizeBytes * (i + 1)))
+      state = addRoundKey(state, key.slice(keySizeBytes * (i - 1), keySizeBytes * i))
       state = mixColumn(state, inverse = true)
       i -= 1
     }
@@ -85,25 +81,13 @@ class Rijndael (val keySize: Int) {
     state.zip(key).map ({ case (x, y) => x ^ y })
   }
 
-  def shiftRow(state: Array[UByte], inverse: Boolean = false) = { // : Array[Byte]
-//    		 0,  1,  2,  3,
-//    		 4,  5,  6,  7,
-//    		 8,  9, 10, 11,
-//    		12, 13, 14, 15
-
-//         0,  4,  8, 12,
-//         5,  9, 13,  1,
-//         10, 14,  2,  6,
-//         15,  3,  7, 11
+  def shiftRow(state: Array[UByte], inverse: Boolean = false): Array[UByte] = {
 
     val tempState = Array.ofDim[UByte](keySizeBytes)
-    state.copyToArray(tempState) // нужно для копирования первой колонки
-    for (row <- 1 until 4) {
+    for (row <- 0 until 4) {
       for (col <- 0 until numColumns) {
-        val index = numColumns * row + col
-        // left if not inverse else right
-        val new_index = (if (inverse) col + row else (col - row)  + numColumns) % numColumns + numColumns * row
-        tempState(new_index) = state(index)
+        val newIndex = if (!inverse) index(row, pMod(col - row, numColumns)) else index(row, pMod(col + row, numColumns))
+        tempState(newIndex) = state(index(row, col))
       }
     }
     tempState
@@ -115,15 +99,13 @@ class Rijndael (val keySize: Int) {
   }
 
   def mixColumn(state: Array[UByte], inverse: Boolean = false): Array[UByte] = {
-    def index(row: Int, col: Int): Int = row * 4 + col
     val stateCopy = Array.fill[UByte](state.length)(0)
     val matrix = if (inverse) mixColumnInvMatrix else mixColumnMatrix
 
     for (r <- 0 until numColumns) {
       for (c <- 0 until 4) {
         for (o <- 0 until 4) {
-          val i = multiply(matrix(c * 4 + o), state(index(r, o)))
-          stateCopy(index(r, c)) = stateCopy(index(r, c)) ^ multiply(matrix(c * 4 + o), state(index(r, o)))
+          stateCopy(index(c, r)) = stateCopy(index(c, r)) ^ multiply(matrix(c * 4 + o), state(index(o, r)))
         }
       }
     }
@@ -157,12 +139,20 @@ class Rijndael (val keySize: Int) {
   def stringToBytes(input: String): Array[UByte] = {
     val inputBytes = input.getBytes(StandardCharsets.UTF_8)
     val paddedLength = (math.ceil(inputBytes.length.toDouble / keySizeBytes) * keySizeBytes).toInt
-    inputBytes.map(UByte(_)) ++ Array.fill[UByte](paddedLength - inputBytes.length)(1.b) // pad array with 0 to paddedLength
+    inputBytes.map(UByte(_)) ++ Array.fill[UByte](paddedLength - inputBytes.length)(32.b) // pad array with 0 to paddedLength
   }
 
   def bytesToString(input: Array[UByte] ): String = {
     new String(input.map(_.toByte), StandardCharsets.US_ASCII)
    }
+
+  private def index(row: Int, col: Int): Int = col * numColumns + row
+
+  private def pMod(num: Int, m: Int): Int = {
+    val x = num % m
+    if (x < 0) x + m else x
+  }
+
 
   private def xorWord(word: Array[UByte], other: Array[UByte]): Array[UByte] = {
     val result = new Array[UByte](word.length)

@@ -10,7 +10,7 @@ class RSA() {
   val p: BigInt = generatePrime()
   val q: BigInt = generatePrime()
   val phiN: BigInt = (p - BigInt(1)) * (q - BigInt(1))
-  val e: BigInt = getExp()
+  val e: BigInt = getExp
   val d: BigInt = e.modInverse(phiN)
   val d2: BigInt = new ModuloOperations(phiN.toInt).div(1, e.toInt) // e^-1 mod phiN
 
@@ -18,7 +18,7 @@ class RSA() {
   val privateKey: PrivateKey  = PrivateKey(p * q, d)
 
 
-  private def getExp(): BigInt = {
+  private def getExp: BigInt = {
     var e = 3
     while (phiN.gcd(e) > 1) e = e + 2
     e

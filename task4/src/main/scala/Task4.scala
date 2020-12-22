@@ -21,10 +21,11 @@ object Task4 {
     val message      = readLine()
     println("Input key")
     val key      = readLine()
-    val aes = new RijndaelT(128)
+    val aes = new Rijndael(128)
     val encoded = aes.encode(message, key)
+    println(s"Encrypted text = ${aes.bytesToString(encoded)}")
     val decoded = aes.decode(encoded, key)
-    println(decoded)
+    println(s"Decrypted text = $decoded")
 
   }
 
@@ -44,21 +45,16 @@ object Task4 {
   }
 
   def task3(): Unit = {
-    println("RSA")
+    println("Wieners attack")
+    println("Input RSA params, e = ")
+    val e = readLine()
+    println("Input RSA params, N = ")
+    val n = readLine()
 
-    val rsa = new RSA()
-    println("Input number to encrypt")
-    val number    = readInt()
-    val encrypted = rsa.encrypt(number, rsa.publicKey)
-    val decrypted = rsa.decrypt(encrypted, rsa.privateKey)
-    println(s"Encrypted number = $encrypted")
-    println(s"Decrypted number = $decrypted")
+    val wiener = new WienersAttack()
+    val d = wiener.attack(BigInt(e), BigInt(n))
 
-    if (number == decrypted)
-      println("Decrypted number equal with initial number")
-    else
-      println("Decrypted number not equal with initial number")
-
+    println(s"Hidden exp d = $d")
   }
 
   def task4(): Unit = {

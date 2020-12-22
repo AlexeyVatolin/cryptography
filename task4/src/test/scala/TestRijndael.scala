@@ -1,45 +1,53 @@
 import org.scalatest.PrivateMethodTester
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers.{be, convertToAnyShouldWrapper, include}
+import org.scalatest.matchers.should.Matchers.{ be, convertToAnyShouldWrapper, include }
 import spire.math.UByte
 
-class TestRijndaelT extends AnyFlatSpec with PrivateMethodTester {
+class TestRijndael extends AnyFlatSpec with PrivateMethodTester {
   implicit def int2Ubyte(x: Int): UByte = UByte(x)
   def state: Array[UByte]               = (0 until 16).map(UByte(_)).toArray
-  def rijndael                          = new RijndaelT(128)
+  def rijndael                          = new Rijndael(128)
+
+  it should "end to end" in {
+    val key     = "abcdefghijklmn"
+    val message = "abcdefghijklmnopabcdefghijklmn"
+    val encoded = rijndael.encode(message, key)
+    val decoded = rijndael.decode(encoded, key)
+    decoded should include(message)
+  }
 
   it should "encode" in {
     val trueEncoded: Array[UByte] = Array(169, 19, 41, 175, 153, 167, 141, 2, 174, 193, 124, 80, 119, 87, 170, 239)
-    val encoded     = rijndael.encode("abcdefghijklmnop", "abcdefghijklmnop")
+    val encoded                   = rijndael.encode("abcdefghijklmnop", "abcdefghijklmnop")
     encoded should be(trueEncoded)
   }
 
   it should "decode" in {
     val trueEncoded: Array[UByte] = Array(169, 19, 41, 175, 153, 167, 141, 2, 174, 193, 124, 80, 119, 87, 170, 239)
-    val decoded     = rijndael.decode(trueEncoded, "abcdefghijklmnop")
+    val decoded                   = rijndael.decode(trueEncoded, "abcdefghijklmnop")
     decoded should include("abcdefghijklmnop")
   }
 
   it should "mix column" in {
-    val mixColumnState: Array[UByte] = Array(2,  7,  0,  5,  6,  3,  4,  1, 10, 15,  8, 13, 14, 11, 12,  9)
+    val mixColumnState: Array[UByte] = Array(2, 7, 0, 5, 6, 3, 4, 1, 10, 15, 8, 13, 14, 11, 12, 9)
     val mixColumn                    = rijndael.mixColumn(state)
     mixColumn should be(mixColumnState)
   }
 
   it should "mix column inverse" in {
-    val mixColumnState: Array[UByte] = Array(10, 15,  8, 13, 14, 11, 12,  9,  2,  7,  0,  5,  6,  3,  4,  1)
+    val mixColumnState: Array[UByte] = Array(10, 15, 8, 13, 14, 11, 12, 9, 2, 7, 0, 5, 6, 3, 4, 1)
     val mixColumn                    = rijndael.mixColumn(state, inverse = true)
     mixColumn should be(mixColumnState)
   }
 
   it should "shift rows" in {
-    val shiftRowState: Array[UByte] = Array(0,  5, 10, 15,  4,  9, 14,  3,  8, 13,  2,  7, 12,  1,  6, 11)
+    val shiftRowState: Array[UByte] = Array(0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11)
     val shiftRow                    = rijndael.shiftRow(state)
     shiftRow should be(shiftRowState)
   }
 
   it should "shift rows inverse" in {
-    val shiftRowState: Array[UByte] = Array(0, 13, 10,  7,  4,  1, 14, 11,  8,  5,  2, 15, 12,  9,  6,  3)
+    val shiftRowState: Array[UByte] = Array(0, 13, 10, 7, 4, 1, 14, 11, 8, 5, 2, 15, 12, 9, 6, 3)
     val shiftRow                    = rijndael.shiftRow(state, inverse = true)
     shiftRow should be(shiftRowState)
   }
@@ -127,16 +135,4 @@ class TestRijndaelT extends AnyFlatSpec with PrivateMethodTester {
     sboxInv should be(sboxInvTrue)
   }
 
-  /*  it should "rcon" in {
-    val rconTrue = Array(1, 2, 4, 8, 16, 32, 64, 128, 27, 54)
-    val RijndaelT = rijndael
-
-    val initRcon = PrivateMethod[Array[Array[UByte]]]('initRcon)
-    val rcon     = RijndaelT.invokePrivate(initRcon())
-
-    rcon(0) should be(rconTrue)
-    rcon(1) should be(Array.fill[UByte](rconTrue.length)(0))
-    rcon(2) should be(Array.fill[UByte](rconTrue.length)(0))
-    rcon(3) should be(Array.fill[UByte](rconTrue.length)(0))
-  }*/
 }
