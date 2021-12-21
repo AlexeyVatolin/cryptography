@@ -21,7 +21,7 @@ object Task4 {
     val message      = readLine()
     println("Input key")
     val key      = readLine()
-    val aes = new Rijndael(128)
+    val aes = new Rijndael()
     val encoded = aes.encode(message, key)
     println(s"Encrypted text = ${aes.bytesToString(encoded)}")
     val decoded = aes.decode(encoded, key)
@@ -50,6 +50,8 @@ object Task4 {
     val e = readLine()
     println("Input RSA params, N = ")
     val n = readLine()
+    // 1779399043 2796304957
+    // 17993, 90581
 
     val wiener = new WienersAttack()
     val d = wiener.attack(BigInt(e), BigInt(n))

@@ -16,6 +16,15 @@ class TestRijndael extends AnyFlatSpec with PrivateMethodTester {
     decoded should include(message)
   }
 
+  it should "end to end 256" in {
+    val key     = "abcdefghijklmn"
+    val message = "abcdefghijklmnopabcdefghijklmn"
+    val r = new Rijndael(256)
+    val encoded = r.encode(message, key)
+    val decoded = r.decode(encoded, key)
+    decoded should include(message)
+  }
+
   it should "encode" in {
     val trueEncoded: Array[UByte] = Array(169, 19, 41, 175, 153, 167, 141, 2, 174, 193, 124, 80, 119, 87, 170, 239)
     val encoded                   = rijndael.encode("abcdefghijklmnop", "abcdefghijklmnop")

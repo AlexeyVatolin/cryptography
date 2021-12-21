@@ -6,7 +6,7 @@ import Gf256.multiply
 import spire.math.UByte
 
 
-class Rijndael(val keySize: Int) {
+class Rijndael(val keySize: Int = 128) {
   if (keySize != 128 && keySize != 192 && keySize != 256)
     throw new InvalidParameterException()
 
@@ -39,9 +39,11 @@ class Rijndael(val keySize: Int) {
 
   def decode(inputBytes: Array[UByte], key: String): String = {
     val keySchedule = keyExpansion(key)
-    inputBytes.sliding(keySizeBytes, step = keySizeBytes)
-              .flatMap(x => bytesToString(decodeBatch(x, keySchedule)))
-              .mkString("")
+    val bytes = inputBytes.sliding(keySizeBytes, step = keySizeBytes)
+      .flatMap(x => decodeBatch(x, keySchedule))
+      .toArray
+    val decodedBytes = unpadBytes(bytes)
+    bytesToString(decodedBytes).mkString("")
   }
 
   def encodeBatch(input: Array[UByte], key: Array[UByte]): Array[UByte] = {
@@ -55,7 +57,6 @@ class Rijndael(val keySize: Int) {
     state = byteSub(state)
     state = shiftRow(state)
     state = addRoundKey(state, key.slice(keySizeBytes * (numRounds - 1), keySizeBytes * numRounds))
-//    val res = state.grouped(4).toArray.transpose.flatten
     state
   }
 
@@ -113,12 +114,12 @@ class Rijndael(val keySize: Int) {
   }
 
   def keyExpansion(key: String): Array[UByte] = {
-    val keySumbols = stringToBytes(key)
+    val keySymbols = stringToBytes(key)
 
     val keySchedule: Array[Array[UByte]] = Array.ofDim[UByte](numRounds * 4, numColumns) // 44 * 4 = 176 for 128
     for (i <- 0 until 4) {
       for (j <- 0 until numColumns) {
-        keySchedule(i)(j) = keySumbols(i * 4 + j)
+        keySchedule(i)(j) = keySymbols(i * 4 + j)
       }
     }
 
@@ -137,14 +138,20 @@ class Rijndael(val keySize: Int) {
   }
 
   def stringToBytes(input: String): Array[UByte] = {
-    val inputBytes = input.getBytes(StandardCharsets.UTF_8)
-    val paddedLength = (math.ceil(inputBytes.length.toDouble / keySizeBytes) * keySizeBytes).toInt
-    inputBytes.map(UByte(_)) ++ Array.fill[UByte](paddedLength - inputBytes.length)(32.b) // pad array with 0 to paddedLength
+    val inputBytes = input.getBytes(StandardCharsets.UTF_8).map(UByte(_))
+    val paddedLength = (math.ceil((inputBytes.length + 1).toDouble / keySizeBytes) * keySizeBytes).toInt
+    val padSize = paddedLength - inputBytes.length - 1
+    inputBytes ++ Array.fill[UByte](padSize)(32.b) :+ padSize.b // pad array with 0 to paddedLength
   }
 
-  def bytesToString(input: Array[UByte] ): String = {
+  def bytesToString(input: Array[UByte]): String = {
     new String(input.map(_.toByte), StandardCharsets.US_ASCII)
    }
+
+  def unpadBytes(input: Array[UByte]): Array[UByte] = {
+    val paddedLength = input.last
+    input.dropRight((paddedLength + 1).toInt)
+  }
 
   private def index(row: Int, col: Int): Int = col * numColumns + row
 
@@ -220,7 +227,7 @@ class Rijndael(val keySize: Int) {
   private def initRcon(): Array[Array[UByte]] = {
     val rcon = Array.fill[UByte](numRounds - 1, 4)(0)
     val initValues: Array[UByte] = Array(0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36,
-      0x6c, 0xd8, 0xab, 0x4d, 0x9a)
+      0x6c, 0xd8, 0xab, 0x4d, 0x9a, 0x2f, 0x5e, 0xbc, 0x63, 0xc6, 0x97, 0x35, 0x6a, 0xd4, 0xb3, 0x7d, 0xfa, 0xef, 0xc5)
     for (i <- 0 until numRounds - 1) {
       rcon(i)(0) = initValues(i)
     }
